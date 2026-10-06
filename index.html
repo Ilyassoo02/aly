@@ -76,6 +76,7 @@
   .choice .t { font-size: 18px; font-style: italic; }
   .choice:hover { border-color: var(--wine-soft); }
   .choice.sel { border-color: var(--wine); background: var(--wine); color: #fff; }
+  .choice.wide { grid-column: 1 / -1; }
 
   .detail { display: none; margin-top: 20px; text-align: left; animation: fadeUp .5s ease both; }
   .detail.show { display: block; }
@@ -85,7 +86,10 @@
     font-family: inherit; font-size: 19px; color: var(--ink); padding: 8px 4px; text-align: center; outline: none;
   }
   input:focus, textarea:focus { border-bottom-color: var(--wine); }
-  textarea { resize: none; height: 44px; }
+  textarea { resize: none; height: 90px; border: 1px solid var(--line); background: #fff; font-style: italic; font-size: 18px; padding: 10px 12px; }
+  textarea:focus { border-color: var(--wine); }
+  .status { font-family: "Inter", sans-serif; font-size: 12px; color: var(--muted); min-height: 18px; margin-top: 18px; }
+  .status.ok { color: var(--wine); }
   .times { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
   .time { border: 1px solid var(--line); background: #fff; font-family: inherit; font-size: 16px; padding: 8px 14px; cursor: pointer; color: var(--ink); }
   .time.sel { background: var(--wine); color: #fff; border-color: var(--wine); }
@@ -102,14 +106,62 @@
   .actions .btn { font-size: 15px; padding: 10px 18px; }
 
   /* Envelope */
-  .env-wrap { display: none; position: fixed; inset: 0; background: var(--bg); align-items: center; justify-content: center; z-index: 10; }
-  .env-wrap.show { display: flex; }
-  .env { position: relative; width: 260px; height: 170px; background: #f3e6da; box-shadow: 0 30px 50px -25px rgba(90,40,40,.5); }
-  .env .letter { position: absolute; left: 14px; right: 14px; top: 10px; height: 140px; background: #fff; transition: transform .8s .5s ease; display: grid; place-items: center; font-style: italic; color: var(--wine); font-size: 22px; }
-  .env .front { position: absolute; inset: 0; background: linear-gradient(to top right, #efdccd 50%, transparent 50%) left/50% 100% no-repeat, linear-gradient(to top left, #efdccd 50%, transparent 50%) right/50% 100% no-repeat; z-index: 2; }
-  .env .flap { position: absolute; left: 0; right: 0; top: 0; height: 100px; background: #e8d3c3; clip-path: polygon(0 0, 100% 0, 50% 100%); transform-origin: top; transition: transform .6s ease; z-index: 3; }
-  .env.open .flap { transform: rotateX(180deg); z-index: 1; }
-  .env.open .letter { transform: translateY(-90px); }
+  /* 1. l'enveloppe arrive  2. la lettre glisse dedans  3. le rabat se ferme
+     4. le sceau ♥ se pose  5. l'enveloppe s'envole */
+  .env-wrap { display: none; position: fixed; inset: 0; z-index: 10; flex-direction: column; align-items: center; justify-content: center; gap: 34px;
+    background: radial-gradient(ellipse at center, #f6ede5, var(--bg) 70%); padding-top: 120px; }
+  .env-wrap.play { display: flex; animation: wrapIn .4s ease both, wrapOut .5s 3.7s ease forwards; }
+  .env { position: relative; width: 300px; height: 190px; perspective: 900px; }
+  .env-wrap.play .env { animation: envIn .6s cubic-bezier(.2,1.2,.4,1) both, flyAway 1s 2.85s cubic-bezier(.55,0,.8,.4) forwards; }
+  .env .back { position: absolute; inset: 0; background: linear-gradient(#dcc0ad, #e9d5c5); border-radius: 4px; box-shadow: 0 30px 50px -25px rgba(90,40,40,.55); }
+  .env .letter {
+    position: absolute; left: 16px; right: 16px; top: 12px; height: 165px; z-index: 2;
+    background: #fff; border-radius: 2px; box-shadow: 0 2px 8px rgba(90,40,40,.12);
+    padding: 16px 14px; text-align: center; transform: translateY(-135px);
+  }
+  .env-wrap.play .letter { animation: letterIn 1s .65s cubic-bezier(.6,0,.3,1) forwards; }
+  .env .letter b { display: block; font-style: italic; font-weight: 400; color: var(--wine); font-size: 22px; margin-bottom: 6px; }
+  .env .letter span { display: block; font-size: 14px; color: var(--ink); line-height: 1.35; }
+  .env .letter i { display: block; font-size: 13px; color: var(--muted); margin-top: 6px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .env .pocket {
+    position: absolute; inset: 0; z-index: 3; border-radius: 0 0 4px 4px;
+    background: linear-gradient(170deg, #f6e9de, #ecd8c8);
+    clip-path: polygon(0 0, 50% 58%, 100% 0, 100% 100%, 0 100%);
+  }
+  .env .pocket::after { content: ""; position: absolute; inset: 0; background: linear-gradient(#f3e3d6, #e8d2c1); clip-path: polygon(0 100%, 50% 50%, 100% 100%); }
+  .env .flap {
+    position: absolute; left: 0; right: 0; top: 0; height: 118px; z-index: 1;
+    background: linear-gradient(#e2c9b7, #d9bca7); clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top center; transform: rotateX(180deg);
+  }
+  .env-wrap.play .flap { animation: flapClose .7s 1.7s ease-in-out forwards; }
+  .env .wax {
+    position: absolute; left: 50%; top: 92px; z-index: 6; width: 44px; height: 44px; margin-left: -22px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #a3343f, var(--wine) 60%, #5c1520);
+    color: #f6d9dc; display: grid; place-items: center; font-size: 18px;
+    box-shadow: 0 4px 10px -3px rgba(90,20,30,.6); transform: scale(0);
+  }
+  .env-wrap.play .wax { animation: sealPop .45s 2.35s cubic-bezier(.3,1.8,.5,1) forwards; }
+  .env-caption { font-style: italic; color: var(--muted); font-size: 18px; margin: 0; opacity: 0; }
+  .env-wrap.play .env-caption { animation: captionIn .5s .9s ease forwards; }
+
+  @keyframes wrapIn { from { opacity: 0; } }
+  @keyframes wrapOut { to { opacity: 0; } }
+  @keyframes envIn { from { opacity: 0; transform: translateY(40px) scale(.85); } }
+  @keyframes letterIn { to { transform: translateY(0); } }
+  @keyframes flapClose {
+    0%   { transform: rotateX(180deg); z-index: 1; }
+    49%  { z-index: 1; }
+    50%  { z-index: 5; }
+    100% { transform: rotateX(0deg); z-index: 5; }
+  }
+  @keyframes sealPop { to { transform: scale(1); } }
+  @keyframes flyAway {
+    0%   { transform: none; opacity: 1; }
+    20%  { transform: translateY(14px) rotate(2deg); opacity: 1; }
+    100% { transform: translate(45vw, -80vh) rotate(-18deg) scale(.35); opacity: 0; }
+  }
+  @keyframes captionIn { to { opacity: 1; } }
 
   /* Hearts */
   .heart { position: fixed; bottom: -30px; pointer-events: none; color: var(--wine); opacity: .8; animation: rise linear forwards; z-index: 20; }
@@ -150,6 +202,7 @@
       <button class="choice" data-act="resto"><span class="ico">🍝</span><span class="t">Un restaurant</span></button>
       <button class="choice" data-act="picnic"><span class="ico">🧺</span><span class="t">Un pique-nique</span></button>
       <button class="choice" data-act="glace"><span class="ico">🍦</span><span class="t">Manger une glace</span></button>
+      <button class="choice wide" data-act="autre"><span class="ico">💡</span><span class="t">Autre chose (tu proposes)</span></button>
     </div>
 
     <!-- Cinéma -->
@@ -157,40 +210,50 @@
       <a class="link" id="kinepolisLink" target="_blank" rel="noopener">Voir les films à l'affiche au Kinepolis Liège ↗</a>
       <label class="lbl" for="film">Quel film ?</label>
       <input type="text" id="film" placeholder="Le titre du film">
-      <label class="lbl" for="filmTime">À quelle heure ? (la séance)</label>
-      <input type="time" id="filmTime">
     </div>
 
     <!-- Restaurant -->
     <div class="detail" data-for="resto">
       <label class="lbl" for="restoName">Quel restaurant ?</label>
-      <input type="text" id="restoName" placeholder="Le nom du resto">
-      <label class="lbl" for="restoTime">À quelle heure ?</label>
-      <input type="time" id="restoTime">
+      <input type="text" id="restoName" placeholder="Le nom du resto (ou « surprise »)">
     </div>
 
     <!-- Pique-nique -->
     <div class="detail" data-for="picnic">
       <p class="sub" style="text-align:center">Je m'occupe du panier, toi tu choisis juste quand.</p>
-      <label class="lbl">À quelle heure ?</label>
-      <div class="times" data-target="picnicTime">
-        <button class="time">16:00</button><button class="time">17:00</button><button class="time">18:00</button><button class="time">19:00</button>
-      </div>
     </div>
 
     <!-- Glace -->
     <div class="detail" data-for="glace">
       <p class="sub" style="text-align:center">Une glace (ou deux) après les manèges&nbsp;🍨</p>
-      <label class="lbl">À quelle heure ?</label>
-      <div class="times" data-target="glaceTime">
-        <button class="time">15:00</button><button class="time">16:00</button><button class="time">17:00</button><button class="time">20:00</button>
-      </div>
     </div>
 
-    <label class="lbl" for="note">Un mot pour moi (facultatif)</label>
-    <textarea id="note" placeholder="…"></textarea>
+    <!-- Autre -->
+    <div class="detail" data-for="autre">
+      <label class="lbl" for="otherAct">Ton idée ?</label>
+      <input type="text" id="otherAct" placeholder="Bowling, balade, karaoké…">
+    </div>
 
-    <button class="btn confirm" id="confirm" disabled>Confirmer</button>
+    <!-- Heure (commune à toutes les activités) -->
+    <div class="detail" id="timeBlock">
+      <div class="divider">L'heure</div>
+      <label class="lbl" id="timeLabel" for="actTime">À quelle heure ?</label>
+      <div class="times" id="timeChips">
+        <button class="time">15:00</button><button class="time">16:00</button><button class="time">17:00</button>
+        <button class="time">18:00</button><button class="time">19:00</button><button class="time">20:00</button><button class="time">21:00</button>
+      </div>
+      <p class="small" style="text-align:center;margin:12px 0 0">ou une autre heure&nbsp;:</p>
+      <input type="time" id="actTime">
+    </div>
+
+    <!-- Petit mot (obligatoire) -->
+    <div class="detail" id="noteBlock">
+      <div class="divider">Un petit mot</div>
+      <label class="lbl" for="note">Écris-moi quelque chose ♥</label>
+      <textarea id="note" maxlength="500" placeholder="…"></textarea>
+    </div>
+
+    <button class="btn confirm" id="confirm" disabled>Choisis une activité</button>
     <p class="err" id="err"></p>
   </section>
 
@@ -203,19 +266,23 @@
     <p class="small" id="recapDate"></p>
     <p class="quote" id="recapNote"></p>
     <p class="sub">J'ai déjà hâte.</p>
+    <p class="status" id="status"></p>
     <div class="actions">
-      <button class="btn" id="send">Me l'envoyer 💌</button>
+      <button class="btn" id="send">Me l'envoyer sur WhatsApp 💌</button>
       <button class="btn ghost" id="restart">Changer d'avis</button>
     </div>
   </section>
 </main>
 
 <div class="env-wrap" id="envWrap">
-  <div class="env" id="env">
+  <div class="env">
+    <div class="back"></div>
     <div class="flap"></div>
-    <div class="letter">Pour toi ♥</div>
-    <div class="front"></div>
+    <div class="letter"><b>Pour toi ♥</b><span id="envAct"></span><i id="envNote"></i></div>
+    <div class="pocket"></div>
+    <div class="wax">♥</div>
   </div>
+  <p class="env-caption">Je t'envoie ta réponse…</p>
 </div>
 
 <script>
@@ -224,6 +291,7 @@
     name: "Aly",                 // son prénom, affiché en haut de la carte
     date: "",                    // ex : "Samedi 17 octobre" (laisser vide pour ne rien afficher)
     whatsapp: "",                // ton numéro au format international sans + (ex : "32470123456"), vide = elle choisit le contact
+    email: "labidiilyas@gmail.com",                 // ton adresse mail : tu reçois automatiquement son choix (via formsubmit.co), vide = pas d'envoi auto
     kinepolisUrl: "https://kinepolis.be/fr/cinemas/kinepolis-liege"
   };
   // ==============================
@@ -305,63 +373,124 @@
 
   // ---------- Étape 2 : choix de l'activité ----------
   let act = null;
-  const picked = {};
+  const timeInput = $("#actTime");
 
   $$(".choice").forEach(c => c.addEventListener("click", () => {
     act = c.dataset.act;
     $$(".choice").forEach(x => x.classList.toggle("sel", x === c));
-    $$(".detail").forEach(d => d.classList.toggle("show", d.dataset.for === act));
+    $$(".detail[data-for]").forEach(d => d.classList.toggle("show", d.dataset.for === act));
+    $("#timeBlock").classList.add("show");
+    $("#noteBlock").classList.add("show");
+    $("#timeLabel").textContent = act === "cinema" ? "À quelle heure ? (la séance)" : "À quelle heure ?";
     $("#err").textContent = "";
     validate();
   }));
 
-  $$(".times").forEach(group => group.addEventListener("click", e => {
+  // Heure : un créneau proposé OU une heure libre
+  $("#timeChips").addEventListener("click", e => {
     const b = e.target.closest(".time"); if (!b) return;
-    $$(".time", group).forEach(x => x.classList.toggle("sel", x === b));
-    picked[group.dataset.target] = b.textContent;
+    $$(".time").forEach(x => x.classList.toggle("sel", x === b));
+    timeInput.value = b.textContent;
     validate();
-  }));
+  });
+  timeInput.addEventListener("input", () => {
+    $$(".time").forEach(x => x.classList.toggle("sel", x.textContent === timeInput.value));
+  });
 
-  $$("input").forEach(i => i.addEventListener("input", validate));
+  $$("input, textarea").forEach(i => i.addEventListener("input", validate));
 
   function details() {
+    const time = timeInput.value;
     switch (act) {
-      case "cinema": return { ok: $("#film").value.trim() && $("#filmTime").value, text: `🎬 Cinéma au Kinepolis Liège — « ${$("#film").value.trim()} » à ${$("#filmTime").value}` };
-      case "resto":  return { ok: $("#restoName").value.trim() && $("#restoTime").value, text: `🍝 Restaurant « ${$("#restoName").value.trim()} » à ${$("#restoTime").value}` };
-      case "picnic": return { ok: picked.picnicTime, text: `🧺 Pique-nique à ${picked.picnicTime}` };
-      case "glace":  return { ok: picked.glaceTime, text: `🍦 Une glace à ${picked.glaceTime}` };
+      case "cinema": return { name: `Cinéma au Kinepolis Liège — « ${$("#film").value.trim()} »`, ok: $("#film").value.trim(), time, ico: "🎬" };
+      case "resto":  return { name: `Restaurant « ${$("#restoName").value.trim()} »`, ok: $("#restoName").value.trim(), time, ico: "🍝" };
+      case "picnic": return { name: "Pique-nique", ok: true, time, ico: "🧺" };
+      case "glace":  return { name: "Manger une glace", ok: true, time, ico: "🍦" };
+      case "autre":  return { name: $("#otherAct").value.trim(), ok: $("#otherAct").value.trim(), time, ico: "💡" };
       default: return { ok: false };
     }
   }
-  function validate() { $("#confirm").disabled = !details().ok; }
+  function missing() {
+    const d = details();
+    if (!act) return "Choisis une activité";
+    if (!d.ok) return act === "cinema" ? "Choisis le film" : act === "resto" ? "Choisis le resto" : "Dis-moi ton idée";
+    if (!d.time) return "Choisis une heure";
+    if (!$("#note").value.trim()) return "Écris-moi un petit mot";
+    return "";
+  }
+  function validate() {
+    const m = missing();
+    $("#confirm").disabled = !!m;
+    $("#confirm").textContent = m || "Confirmer ♥";
+  }
+
+  let sent = false;
+  async function sendMail() {
+    const st = $("#status");
+    if (!CONFIG.email) { st.textContent = ""; return; }
+    if (sent) return;
+    const d = details(), note = $("#note").value.trim();
+    st.className = "status"; st.textContent = "Envoi de ta réponse…";
+    try {
+      const res = await fetch(`https://formsubmit.co/ajax/${CONFIG.email}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          _subject: `💕 ${CONFIG.name || "Elle"} a dit oui ! ${d.name} à ${d.time}`,
+          _template: "box",
+          _captcha: "false",
+          "Activité": d.name,
+          "Heure": d.time,
+          "Date": CONFIG.date || "—",
+          "Son petit mot": note
+        })
+      });
+      const json = await res.json();
+      if (!res.ok || String(json.success) !== "true") throw new Error(json.message);
+      sent = true;
+      st.className = "status ok"; st.textContent = "Ta réponse m'a été envoyée ♥";
+    } catch (e) {
+      console.warn("Envoi mail échoué :", e.message);
+      st.className = "status";
+      st.textContent = location.protocol === "file:"
+        ? "L'envoi auto ne marche qu'une fois la page en ligne (pas en fichier local)."
+        : "L'envoi automatique n'a pas marché — envoie-la-moi sur WhatsApp ↓";
+    }
+  }
 
   $("#confirm").addEventListener("click", () => {
+    if (missing()) { $("#err").textContent = "Il manque encore un petit détail…"; return; }
     const d = details();
-    if (!d.ok) { $("#err").textContent = "Il manque encore un petit détail…"; return; }
-    $("#recapAct").textContent = "Puis : " + d.text.replace(/^\S+\s/, "");
+    $("#recapAct").textContent = `Puis : ${d.name} à ${d.time}`;
     $("#recapDate").textContent = CONFIG.date;
     const note = $("#note").value.trim();
-    $("#recapNote").textContent = note ? `« ${note} »` : "";
+    $("#recapNote").textContent = `« ${note} »`;
+    sendMail();
 
     // Enveloppe
-    const wrap = $("#envWrap"), env = $("#env");
-    wrap.classList.add("show");
-    setTimeout(() => env.classList.add("open"), 400);
+    const wrap = $("#envWrap");
+    $("#envAct").textContent = `${d.ico} ${d.name} à ${d.time}`;
+    $("#envNote").textContent = `« ${note} »`;
+    wrap.classList.remove("play");
+    void wrap.offsetWidth; // relance l'animation si elle a déjà été jouée
+    wrap.classList.add("play");
+    setTimeout(() => hearts(14), 3000);
     setTimeout(() => {
-      wrap.classList.remove("show"); env.classList.remove("open");
+      wrap.classList.remove("play");
       $("#s2").classList.remove("active"); $("#s3").classList.add("active");
+      window.scrollTo({ top: 0 });
       hearts(24);
-    }, 2300);
+    }, 4200);
   });
 
   // ---------- Étape 3 ----------
   $("#send").addEventListener("click", () => {
     const d = details(), note = $("#note").value.trim();
-    const msg = `Oui pour le date ! 💕\n🎡 Foire de Liège${CONFIG.date ? " — " + CONFIG.date : ""}\nPuis ${d.text}${note ? `\n\n« ${note} »` : ""}`;
+    const msg = `Oui pour le date ! 💕\n🎡 Foire de Liège${CONFIG.date ? " — " + CONFIG.date : ""}\nPuis ${d.ico} ${d.name} à ${d.time}\n\n« ${note} »`;
     const url = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank");
   });
-  $("#restart").addEventListener("click", () => go("#s3", "#s2"));
+  $("#restart").addEventListener("click", () => { sent = false; $("#status").textContent = ""; go("#s3", "#s2"); });
 </script>
 </body>
 </html>
