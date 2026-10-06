@@ -232,7 +232,9 @@
     <p class="eyebrow">Parfait</p>
     <h2>On va à la Foire de Liège</h2>
     <p class="place">… mais pas que&nbsp;✨</p>
-    <p class="small" id="dateLine"></p>
+
+    <div class="divider">Quel jour ?</div>
+    <div class="choices" id="days"></div>
 
     <div class="divider">Et après ? À toi de choisir</div>
     <div class="choices">
@@ -291,7 +293,7 @@
       <textarea id="note" maxlength="500" placeholder="…"></textarea>
     </div>
 
-    <button class="btn confirm" id="confirm" disabled>Choisis une activité</button>
+    <button class="btn confirm" id="confirm" disabled>Choisis le jour</button>
     <p class="err" id="err"></p>
   </section>
 
@@ -327,8 +329,8 @@
   // ====== À PERSONNALISER ======
   const CONFIG = {
     name: "Aly",                 // son prénom, affiché en haut de la carte
-    date: "",                    // ex : "Samedi 17 octobre" (laisser vide pour ne rien afficher)
-    whatsapp: "",                // ton numéro au format international sans + (ex : "32470123456"), vide = elle choisit le contact
+    days: ["Samedi 10 octobre", "Dimanche 11 octobre"], // les jours qu'elle peut choisir
+    whatsapp: "32470421037",             // ton numéro au format international sans + (ex : "32470123456"), vide = elle choisit le contact
     kinepolisUrl: "https://kinepolis.be/fr/cinemas/kinepolis-liege"
   };
   // ==============================
@@ -338,7 +340,6 @@
 
   $("#forName").textContent = CONFIG.name ? `Pour toi, ${CONFIG.name}` : "Pour toi";
   $("#quizFor").textContent = $("#forName").textContent;
-  $("#dateLine").textContent = CONFIG.date;
   $("#kinepolisLink").href = CONFIG.kinepolisUrl;
 
   function go(from, to) {
@@ -493,12 +494,25 @@
   yes.addEventListener("click", () => { hearts(); go("#s1", "#s2"); });
 
   // ---------- Étape 2 : choix de l'activité ----------
-  let act = null;
+  let act = null, day = null;
   const timeInput = $("#actTime");
 
-  $$(".choice").forEach(c => c.addEventListener("click", () => {
+  CONFIG.days.forEach(label => {
+    const [weekday, ...rest] = label.split(" ");
+    const b = document.createElement("button");
+    b.className = "choice";
+    b.innerHTML = `<span class="t">${weekday}</span><span class="small" style="display:block">${rest.join(" ")}</span>`;
+    b.addEventListener("click", () => {
+      day = label;
+      $$(".choice", $("#days")).forEach(x => x.classList.toggle("sel", x === b));
+      validate();
+    });
+    $("#days").appendChild(b);
+  });
+
+  $$("[data-act]").forEach(c => c.addEventListener("click", () => {
     act = c.dataset.act;
-    $$(".choice").forEach(x => x.classList.toggle("sel", x === c));
+    $$("[data-act]").forEach(x => x.classList.toggle("sel", x === c));
     $$(".detail[data-for]").forEach(d => d.classList.toggle("show", d.dataset.for === act));
     $("#timeBlock").classList.add("show");
     $("#noteBlock").classList.add("show");
@@ -533,6 +547,7 @@
   }
   function missing() {
     const d = details();
+    if (!day) return "Choisis le jour";
     if (!act) return "Choisis une activité";
     if (!d.ok) return act === "cinema" ? "Choisis le film" : act === "resto" ? "Choisis le resto" : "Dis-moi ton idée";
     if (!d.time) return "Choisis une heure";
@@ -549,7 +564,7 @@
     if (missing()) { $("#err").textContent = "Il manque encore un petit détail…"; return; }
     const d = details();
     $("#recapAct").textContent = `Puis : ${d.name} à ${d.time}`;
-    $("#recapDate").textContent = CONFIG.date;
+    $("#recapDate").textContent = day;
     const note = $("#note").value.trim();
     $("#recapNote").textContent = `« ${note} »`;
     $("#status").className = "status";
@@ -557,7 +572,7 @@
 
     // Enveloppe
     const wrap = $("#envWrap");
-    $("#envAct").textContent = `${d.ico} ${d.name} à ${d.time}`;
+    $("#envAct").textContent = `${day} · ${d.ico} ${d.name} à ${d.time}`;
     $("#envNote").textContent = `« ${note} »`;
     wrap.classList.remove("play");
     void wrap.offsetWidth; // relance l'animation si elle a déjà été jouée
@@ -574,7 +589,7 @@
   // ---------- Étape 3 ----------
   $("#send").addEventListener("click", () => {
     const d = details(), note = $("#note").value.trim();
-    const msg = `Oui pour le date ! 💕\n🎡 Foire de Liège${CONFIG.date ? " — " + CONFIG.date : ""}\nPuis ${d.ico} ${d.name} à ${d.time}\n\n« ${note} »${quizAnswers.length ? `\n\n📝 Mes réponses au quiz :\n${quizAnswers.map(a => "• " + a).join("\n")}` : ""}`;
+    const msg = `Oui pour le date ! 💕\n📅 ${day}\n🎡 Foire de Liège\nPuis ${d.ico} ${d.name} à ${d.time}\n\n« ${note} »${quizAnswers.length ? `\n\n📝 Mes réponses au quiz :\n${quizAnswers.map(a => "• " + a).join("\n")}` : ""}`;
     const url = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
     if (!window.open(url, "_blank")) location.href = url; // si la nouvelle fenêtre est bloquée
     $("#status").className = "status ok";
