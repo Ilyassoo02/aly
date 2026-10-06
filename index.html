@@ -282,7 +282,7 @@
     <div class="pocket"></div>
     <div class="wax">♥</div>
   </div>
-  <p class="env-caption">Je t'envoie ta réponse…</p>
+  <p class="env-caption">Ta réponse est prête…</p>
 </div>
 
 <script>
@@ -291,7 +291,6 @@
     name: "Aly",                 // son prénom, affiché en haut de la carte
     date: "",                    // ex : "Samedi 17 octobre" (laisser vide pour ne rien afficher)
     whatsapp: "",                // ton numéro au format international sans + (ex : "32470123456"), vide = elle choisit le contact
-    email: "labidiilyas@gmail.com",                 // ton adresse mail : tu reçois automatiquement son choix (via formsubmit.co), vide = pas d'envoi auto
     kinepolisUrl: "https://kinepolis.be/fr/cinemas/kinepolis-liege"
   };
   // ==============================
@@ -424,40 +423,6 @@
     $("#confirm").textContent = m || "Confirmer ♥";
   }
 
-  let sent = false;
-  async function sendMail() {
-    const st = $("#status");
-    if (!CONFIG.email) { st.textContent = ""; return; }
-    if (sent) return;
-    const d = details(), note = $("#note").value.trim();
-    st.className = "status"; st.textContent = "Envoi de ta réponse…";
-    try {
-      const res = await fetch(`https://formsubmit.co/ajax/${CONFIG.email}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({
-          _subject: `💕 ${CONFIG.name || "Elle"} a dit oui ! ${d.name} à ${d.time}`,
-          _template: "box",
-          _captcha: "false",
-          "Activité": d.name,
-          "Heure": d.time,
-          "Date": CONFIG.date || "—",
-          "Son petit mot": note
-        })
-      });
-      const json = await res.json();
-      if (!res.ok || String(json.success) !== "true") throw new Error(json.message);
-      sent = true;
-      st.className = "status ok"; st.textContent = "Ta réponse m'a été envoyée ♥";
-    } catch (e) {
-      console.warn("Envoi mail échoué :", e.message);
-      st.className = "status";
-      st.textContent = location.protocol === "file:"
-        ? "L'envoi auto ne marche qu'une fois la page en ligne (pas en fichier local)."
-        : "L'envoi automatique n'a pas marché — envoie-la-moi sur WhatsApp ↓";
-    }
-  }
-
   $("#confirm").addEventListener("click", () => {
     if (missing()) { $("#err").textContent = "Il manque encore un petit détail…"; return; }
     const d = details();
@@ -465,7 +430,8 @@
     $("#recapDate").textContent = CONFIG.date;
     const note = $("#note").value.trim();
     $("#recapNote").textContent = `« ${note} »`;
-    sendMail();
+    $("#status").className = "status";
+    $("#status").textContent = "Dernière étape : envoie-moi ta réponse sur WhatsApp ↓";
 
     // Enveloppe
     const wrap = $("#envWrap");
@@ -488,9 +454,11 @@
     const d = details(), note = $("#note").value.trim();
     const msg = `Oui pour le date ! 💕\n🎡 Foire de Liège${CONFIG.date ? " — " + CONFIG.date : ""}\nPuis ${d.ico} ${d.name} à ${d.time}\n\n« ${note} »`;
     const url = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
+    if (!window.open(url, "_blank")) location.href = url; // si la nouvelle fenêtre est bloquée
+    $("#status").className = "status ok";
+    $("#status").textContent = "Merci ♥ N'oublie pas d'appuyer sur Envoyer dans WhatsApp.";
   });
-  $("#restart").addEventListener("click", () => { sent = false; $("#status").textContent = ""; go("#s3", "#s2"); });
+  $("#restart").addEventListener("click", () => go("#s3", "#s2"));
 </script>
 </body>
 </html>
