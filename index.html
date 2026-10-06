@@ -167,6 +167,19 @@
   .heart { position: fixed; bottom: -30px; pointer-events: none; color: var(--wine); opacity: .8; animation: rise linear forwards; z-index: 20; }
   @keyframes rise { to { transform: translateY(-110vh) rotate(25deg); opacity: 0; } }
 
+  /* Quiz */
+  .bar { height: 3px; background: var(--line); margin: -10px auto 26px; max-width: 220px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--wine); transition: width .5s ease; }
+  .q { font-style: italic; color: var(--wine); font-size: clamp(24px, 6vw, 32px); line-height: 1.2; margin: 0 0 22px; min-height: 2.4em; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .opts .choice { font-size: 18px; font-style: italic; padding: 14px 10px; }
+  .opts .choice:disabled { cursor: default; }
+  .opts .choice:disabled:not(.sel) { opacity: .45; }
+  .react { font-style: italic; font-size: 19px; color: var(--ink); min-height: 52px; margin: 20px 0 0; opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .35s; }
+  .react.show { opacity: 1; transform: none; }
+  .score { font-size: clamp(64px, 18vw, 92px); color: var(--wine); font-style: italic; line-height: 1; margin: 6px 0 10px; }
+  #s0 .btn, #sr .btn { margin-top: 26px; }
+
   @media (max-width: 420px) {
     .card { padding: 40px 20px 32px; }
     .choice .t { font-size: 16px; }
@@ -177,8 +190,33 @@
 
 <main class="card">
 
+  <!-- ÉTAPE 0 : le petit quiz -->
+  <section class="step active" id="s0">
+    <p class="eyebrow" id="quizFor">Pour toi</p>
+    <h1>Avant tout…<br>un petit quiz&nbsp;📝</h1>
+    <p class="sub">Rien de compliqué, promis. Il n'y a (presque) pas de mauvaise réponse.</p>
+    <button class="btn" id="quizStart">C'est parti</button>
+  </section>
+
+  <section class="step" id="sq">
+    <p class="eyebrow" id="qNum"></p>
+    <div class="bar"><i id="qBar"></i></div>
+    <p class="q" id="qText"></p>
+    <div class="opts" id="qOpts"></div>
+    <p class="react" id="qReact"></p>
+  </section>
+
+  <section class="step" id="sr">
+    <div class="seal">♥</div>
+    <p class="eyebrow">Résultat du quiz</p>
+    <p class="score"><span id="scoreNum">0</span>%</p>
+    <h2>Compatibilité parfaite</h2>
+    <p class="sub">Je m'en doutais un peu 😌<br>Du coup… j'ai une question à te poser.</p>
+    <button class="btn" id="toInvite">Laquelle&nbsp;?</button>
+  </section>
+
   <!-- ÉTAPE 1 : la question -->
-  <section class="step active" id="s1">
+  <section class="step" id="s1">
     <p class="eyebrow" id="forName">Pour toi</p>
     <h1>Ça te dit un date avec moi&nbsp;?</h1>
     <p class="sub">(dire non ne sert à rien, mais tu peux essayer)</p>
@@ -299,6 +337,7 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
   $("#forName").textContent = CONFIG.name ? `Pour toi, ${CONFIG.name}` : "Pour toi";
+  $("#quizFor").textContent = $("#forName").textContent;
   $("#dateLine").textContent = CONFIG.date;
   $("#kinepolisLink").href = CONFIG.kinepolisUrl;
 
@@ -321,6 +360,89 @@
       setTimeout(() => h.remove(), 7500);
     }
   }
+
+  // ---------- Étape 0 : le petit quiz ----------
+  // Chaque réponse = [texte du bouton, réaction affichée]. "key" = ce qui apparaît dans le message WhatsApp.
+  const QUIZ = [
+    { key: "Jolie aujourd'hui", q: "Sur 10, tu es comment aujourd'hui ?", opts: [
+      ["7", "Faux. C'est 11 😌"],
+      ["8", "Faux. C'est 11. Mais j'aime ta modestie."],
+      ["9", "Presque… c'est 11 😌"],
+      ["10", "Faux. C'est 11. Mais t'étais pas loin."]
+    ]},
+    { key: "À la foire", q: "À la foire, tu es plutôt…", opts: [
+      ["Manèges qui font peur 🎢", "OK… je fais semblant de pas avoir peur alors 😅"],
+      ["Grande roue 🎡", "Grande roue au coucher du soleil, noté 🌅"],
+      ["Barbe à papa 🍭", "Une barbe à papa, c'est réservé d'avance."],
+      ["Stand de peluches 🧸", "Je te gagnerai une peluche. Ou j'en achèterai une discrètement."]
+    ]},
+    { key: "Qui est le plus drôle", q: "Qui est le plus drôle de nous deux ?", opts: [
+      ["Toi", "Bonne réponse ✨"],
+      ["Moi", "Hmm… on en reparlera 😏"]
+    ]},
+    { key: "Musique en voiture", q: "Dans la voiture, c'est qui le DJ ?", opts: [
+      ["Moi, évidemment 🎧", "D'accord, mais je chante quand même."],
+      ["Toi", "Prépare-toi à une playlist de qualité 🎶"],
+      ["On chante tous les deux", "Duo de l'année 🎤"],
+      ["Silence et vue", "Romantique. J'aime."]
+    ]},
+    { key: "Sourire en ce moment", q: "Dernière question : tu souris en ce moment ?", opts: [
+      ["Oui 😊", "Je le savais."],
+      ["Un peu", "Un peu, c'est déjà beaucoup 🥰"],
+      ["Non", "Menteuse 😌"]
+    ]}
+  ];
+  const quizAnswers = [];
+  let qi = 0;
+
+  function showQuestion() {
+    const item = QUIZ[qi];
+    $("#qNum").textContent = `Question ${qi + 1} / ${QUIZ.length}`;
+    $("#qBar").style.width = `${(qi / QUIZ.length) * 100}%`;
+    $("#qText").textContent = item.q;
+    $("#qReact").classList.remove("show");
+    $("#qOpts").innerHTML = "";
+    item.opts.forEach(([label, reaction]) => {
+      const b = document.createElement("button");
+      b.className = "choice";
+      b.textContent = label;
+      b.addEventListener("click", () => answer(b, label, reaction));
+      $("#qOpts").appendChild(b);
+    });
+    // une question à 3 choix : le dernier prend toute la largeur
+    if (item.opts.length % 2) $("#qOpts").lastChild.classList.add("wide");
+  }
+
+  function answer(btn, label, reaction) {
+    $$(".choice", $("#qOpts")).forEach(b => { b.disabled = true; b.classList.toggle("sel", b === btn); });
+    quizAnswers[qi] = `${QUIZ[qi].key} : ${label}`;
+    $("#qReact").textContent = reaction;
+    $("#qReact").classList.add("show");
+    $("#qBar").style.width = `${((qi + 1) / QUIZ.length) * 100}%`;
+    setTimeout(() => {
+      qi++;
+      if (qi < QUIZ.length) {
+        const s = $("#sq");
+        s.classList.remove("active"); void s.offsetWidth; s.classList.add("active"); // rejoue le fondu
+        showQuestion();
+      } else {
+        go("#sq", "#sr");
+        setTimeout(countUp, 600);
+      }
+    }, 1900);
+  }
+
+  function countUp() {
+    const el = $("#scoreNum"), start = performance.now();
+    (function tick(now) {
+      const p = Math.min((now - start) / 1400, 1);
+      el.textContent = Math.round(100 * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(tick); else hearts(16);
+    })(start);
+  }
+
+  $("#quizStart").addEventListener("click", () => { qi = 0; showQuestion(); go("#s0", "#sq"); });
+  $("#toInvite").addEventListener("click", () => go("#sr", "#s1"));
 
   // ---------- Étape 1 : le bouton Non qui s'échappe ----------
   const arena = $("#arena"), no = $("#no"), yes = $("#yes"), tease = $("#tease");
@@ -452,7 +574,7 @@
   // ---------- Étape 3 ----------
   $("#send").addEventListener("click", () => {
     const d = details(), note = $("#note").value.trim();
-    const msg = `Oui pour le date ! 💕\n🎡 Foire de Liège${CONFIG.date ? " — " + CONFIG.date : ""}\nPuis ${d.ico} ${d.name} à ${d.time}\n\n« ${note} »`;
+    const msg = `Oui pour le date ! 💕\n🎡 Foire de Liège${CONFIG.date ? " — " + CONFIG.date : ""}\nPuis ${d.ico} ${d.name} à ${d.time}\n\n« ${note} »${quizAnswers.length ? `\n\n📝 Mes réponses au quiz :\n${quizAnswers.map(a => "• " + a).join("\n")}` : ""}`;
     const url = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
     if (!window.open(url, "_blank")) location.href = url; // si la nouvelle fenêtre est bloquée
     $("#status").className = "status ok";
